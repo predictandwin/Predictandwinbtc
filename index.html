@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Predict & Win — Monthly $5 Crypto Prediction Challenge</title>
-<meta name="description" content="Pay $5 in crypto, predict Gold & BTC prices, win a fixed $5,000 prize.">
+<meta name="description" content="Pay $5 in crypto, predict Gold & BTC prices, win a $5,000 prize.">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -92,9 +92,9 @@ footer a{color:#5a6579;margin:0 10px;text-decoration:none}
   </div>
 
   <div class="pool">
-    <div class="label">THIS MONTH'S FIXED PRIZE</div>
+    <div class="label">THIS MONTH'S PRIZE</div>
     <div class="amount" id="poolAmount">$0</div>
-    <div class="sub"><span id="entryCount">0</span> paid entries · Fixed $5,000 prize</div>
+    <div class="sub"><span id="entryCount">0</span> paid entries · $5,000 prize</div>
     <div class="countdown">
       <div class="cd"><b id="cdD">—</b><small>days</small></div>
       <div class="cd"><b id="cdH">—</b><small>hours</small></div>
@@ -113,7 +113,7 @@ footer a{color:#5a6579;margin:0 10px;text-decoration:none}
       <div class="step"><b>1️⃣ Predict</b>Lock your Gold &amp; BTC price range for month-end. Free to try.</div>
       <div class="step"><b>2️⃣ Pay $5</b>Send $5 in crypto (BEP20 / TRC20) to activate your entry.</div>
       <div class="step"><b>3️⃣ Get approved</b>Admin verifies your deposit — your entry goes live.</div>
-      <div class="step"><b>4️⃣ Win $5,000</b>Month-end price inside your range wins the fixed $5,000 prize.</div>
+      <div class="step"><b>4️⃣ Win $5,000</b>Month-end price inside your range wins the $5,000 prize.</div>
     </div>
   </div>
 
@@ -163,6 +163,13 @@ footer a{color:#5a6579;margin:0 10px;text-decoration:none}
     <p id="lockedText"></p>
   </div>
 
+  <div class="card hidden" id="referCard">
+    <h2>🔗 Refer & Earn $500</h2>
+    <p>Share your link. If someone joins with it and <b>wins</b>, you get <b>$500</b>.</p>
+    <div class="row"><code id="refLink" style="font-size:11px;word-break:break-all"></code><button class="copy" onclick="copyAddr('refLink')">Copy</button></div>
+    <p style="margin-top:8px;font-size:13px">People joined via your link: <b id="refCount">0</b></p>
+  </div>
+
   <div class="card" id="loginCard">
     <h2>🔐 Log in to Enter</h2>
     <p>Create your free account, pay the $5 entry fee, and lock your prediction. Takes a minute.</p>
@@ -177,8 +184,9 @@ footer a{color:#5a6579;margin:0 10px;text-decoration:none}
 
   <div class="card">
     <h2>❓ FAQ</h2>
-    <p><b>Where does the prize come from?</b><br>The $5,000 prize is fixed and sponsor-funded — it does not depend on how many people enter.</p>
+    <p><b>Where does the prize come from?</b><br>The $5,000 prize is sponsor-funded — it does not depend on how many people enter.</p>
     <p style="margin-top:8px"><b>When do I get paid?</b><br>Winner is announced here within 7 days of month-end and paid in crypto within 7 days after.</p>
+    <p style="margin-top:8px"><b>How do referrals work?</b><br>After login you get a referral link. If someone joins with your link and wins the month, you get $500.</p>
     <p style="margin-top:8px"><b>Can I change my prediction?</b><br>No. Locked entries can't be edited — that's what keeps it fair.</p>
     <p style="margin-top:8px"><b>Is my deposit refunded if I don't win?</b><br>No — the $5 is your entry fee into the prize pool, win or lose.</p>
   </div>
@@ -188,10 +196,10 @@ footer a{color:#5a6579;margin:0 10px;text-decoration:none}
     <h3 style="font-size:14px;margin:12px 0 6px;color:#f5b301">Pending Deposits (<span id="pendCount">0</span>)</h3>
     <div id="depQueue"><p style="color:#9fb0cc">Loading…</p></div>
     <h3 style="font-size:14px;margin:16px 0 6px;color:#f5b301">Announce Winner</h3>
-    <label>Winner name (as it should appear)</label>
-    <input id="admWinner" placeholder="Winner name">
+    <label>Winner email (their login email)</label>
+    <input id="admWinner" placeholder="winner@email.com">
     <button class="btn" id="admAnnounce" style="width:100%">📢 Announce Winner</button>
-    <div class="note">Entries this round: <b id="entryCount2">0</b> · Winner prize (fixed): <b id="admPrize">$5,000</b></div>
+    <div class="note">Entries this round: <b id="entryCount2">0</b> · Winner prize: <b id="admPrize">$5,000</b></div>
   </div>
 
   <footer>
@@ -223,7 +231,8 @@ var FIREBASE_CONFIG = {
 };
 var OWNER_EMAIL = "ashiralmani607@gmail.com";
 var ENTRY_FEE = 5;            // $5 per prediction
-var FIXED_PRIZE = 5000;         // fixed sponsor-funded prize
+var PRIZE_AMOUNT = 5000;      // sponsor-funded prize
+var WINNER_FULL = 5000, WINNER_WITH_REF = 4500, REF_BONUS = 500;
 var ADDRESSES = {
   BEP20: "0x5257af1e53c477e6b1006c4e1206e18051a77878",
   TRC20: "TLQH28A1g78MVcBX14bmxZKdAnytUR5Bvi"
@@ -236,7 +245,7 @@ var isOwner = false, myDeposit = null, myPrediction = null;
 
 function $(id){ return document.getElementById(id); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-function copyAddr(id){ var t = $(id).textContent; if (navigator.clipboard) navigator.clipboard.writeText(t); alert('Address copied'); }
+function copyAddr(id){ var t = $(id).textContent; if (navigator.clipboard) navigator.clipboard.writeText(t); alert('Copied!'); }
 
 /* ---- round = calendar month ---- */
 (function initRound(){
@@ -246,6 +255,8 @@ function copyAddr(id){ var t = $(id).textContent; if (navigator.clipboard) navig
   var names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   $('lbRound').textContent = names[n.getMonth()] + ' ' + n.getFullYear();
 })();
+/* ---- referral capture (?ref=UID) ---- */
+(function(){ try { var r = new URLSearchParams(location.search).get('ref'); if (r && /^[A-Za-z0-9]{10,40}$/.test(r)) localStorage.setItem('paw_ref', r); } catch(e){} })();
 
 /* ---- countdown ---- */
 setInterval(function(){
@@ -288,7 +299,7 @@ function onAuth(u){
   $('adminBtn').classList.toggle('hidden', !isOwner);
   if (u){ $('userEmail').textContent = u.email; $('userEmail').classList.remove('hidden'); }
   else { $('userEmail').classList.add('hidden'); }
-  if (u) loadMyState(); else { resetCards(); }
+  if (u){ loadMyState(); $('referCard').classList.remove('hidden'); $('refLink').textContent = location.origin + location.pathname + '?ref=' + u.uid; loadRefCount(); } else { resetCards(); $('referCard').classList.add('hidden'); }
   loadBoard(); loadPool();
   if (isOwner) loadAdmin();
 }
@@ -324,17 +335,21 @@ function resetCards(){
   myDeposit = null; myPrediction = null;
 }
 
+/* ---- referral count ---- */
+function loadRefCount(){
+  if (!currentUser) return;
+  db.collection('predictions').where('referredBy','==',currentUser.uid).get().then(function(s){
+    $('refCount').textContent = s.size;
+  }).catch(function(){});
+}
 /* ---- my deposit + prediction state ---- */
 function depId(){ return roundId + '_' + currentUser.uid; }
 function loadMyState(){
   resetCards();
-  db.collection('deposits').doc(depId()).get().then(function(d){
-    myDeposit = d.exists ? d.data() : null;
-    return db.collection('predictions').doc(depId()).get();
-  }).then(function(p){
-    myPrediction = p.exists ? p.data() : null;
-    renderMyCards();
-  }).catch(function(){ renderMyCards(); });
+  var id = depId();
+  var p1 = db.collection('predictions').doc(id).get().then(function(p){ myPrediction = p.exists ? p.data() : null; }).catch(function(){ myPrediction = null; });
+  var p2 = db.collection('deposits').doc(id).get().then(function(d){ myDeposit = d.exists ? d.data() : null; }).catch(function(){ myDeposit = null; });
+  Promise.all([p1, p2]).then(renderMyCards);
 }
 function renderMyCards(){
   resetCards();
@@ -419,11 +434,16 @@ $('lockBtn').onclick = function(){
   var glo = g, ghi = g + GOLD_RANGE, blo = b, bhi = b + BTC_RANGE;
   if (!confirm('Lock GOLD $' + glo.toLocaleString() + '–$' + ghi.toLocaleString() + ' and BTC $' + blo.toLocaleString() + '–$' + bhi.toLocaleString() + '? Cannot be changed!')) return;
   $('lockBtn').disabled = true;
-  db.collection('predictions').doc(depId()).set({
+  var ref = null;
+  try { ref = localStorage.getItem('paw_ref'); } catch(e){}
+  if (!ref || ref === currentUser.uid) ref = null;
+  var pdoc = {
     uid: currentUser.uid, email: currentUser.email, round: roundId,
     goldLo: glo, goldHi: ghi, btcLo: blo, btcHi: bhi,
     status: 'unpaid', createdAt: Date.now()
-  }).then(function(){ alert('Range locked! Now pay $5 to activate your entry.'); loadMyState(); })
+  };
+  if (ref) pdoc.referredBy = ref;
+  db.collection('predictions').doc(depId()).set(pdoc).then(function(){ alert('Range locked! Now pay $5 to activate your entry.'); loadMyState(); })
   .catch(function(e){
     alert('Could not lock: ' + e.message + ' (deposit must be approved first)');
     $('lockBtn').disabled = false;
@@ -437,10 +457,10 @@ function loadPool(){
   .then(function(s){
     var n = 0;
     s.forEach(function(d){ if (d.data().status === 'active') n++; });
-    $('poolAmount').textContent = '$' + FIXED_PRIZE.toLocaleString();
+    $('poolAmount').textContent = '$' + PRIZE_AMOUNT.toLocaleString();
     $('entryCount').textContent = n;
     var ec2 = $('entryCount2'); if (ec2) ec2.textContent = n;
-    $('admPrize').textContent = '$' + FIXED_PRIZE.toLocaleString();
+    $('admPrize').textContent = '$' + PRIZE_AMOUNT.toLocaleString();
   }).catch(function(){});
 }
 function loadBoard(){
@@ -460,7 +480,7 @@ function loadBoard(){
   db.collection('meta').doc(roundId).get().then(function(d){
     if (d.exists && d.data().winner){
       $('winnerBanner').classList.remove('hidden');
-      $('winnerText').textContent = d.data().winner + ' won ' + d.data().prize + '!';
+      var _mt = d.data().winner + ' won ' + d.data().prize + '!'; if (d.data().referrer) _mt += ' Referrer ' + d.data().referrer + ' gets ' + d.data().referrerPrize + '.'; $('winnerText').textContent = _mt;
     }
   }).catch(function(){});
 }
@@ -508,13 +528,29 @@ function decideDep(id, st){
   .catch(function(e){ alert('Error: ' + e.message); });
 }
 $('admAnnounce').onclick = function(){
-  var w = $('admWinner').value.trim();
-  if (!w){ alert('Enter the winner name'); return; }
-  var prize = $('admPrize').textContent;
-  if (!confirm('Announce "' + w + '" as winner (' + prize + ')?')) return;
-  db.collection('meta').doc(roundId).set({winner: w, prize: prize, announcedAt: Date.now()})
-  .then(function(){ alert('Winner announced: ' + w); loadBoard(); })
-  .catch(function(e){ alert('Error: ' + e.message); });
+  var w = $('admWinner').value.trim().toLowerCase();
+  if (!w){ alert('Enter the winner email'); return; }
+  db.collection('predictions').where('round','==',roundId).get().then(function(s){
+    var wd = null;
+    s.forEach(function(d){ var x = d.data(); if (x.email && x.email.toLowerCase() === w && x.status === 'active') wd = d; });
+    if (!wd){ alert('No ACTIVE entry found for ' + w); return; }
+    var refBy = wd.data().referredBy || null;
+    var finish = function(refEmail){
+      var wPrize = refEmail ? '$' + WINNER_WITH_REF.toLocaleString() : '$' + WINNER_FULL.toLocaleString();
+      var msg = 'Announce "' + w + '" as winner (' + wPrize + (refEmail ? ' + $' + REF_BONUS + ' to referrer ' + refEmail : '') + ')?';
+      if (!confirm(msg)) return;
+      var meta = {winner: w, prize: wPrize, announcedAt: Date.now()};
+      if (refEmail){ meta.referrer = refEmail; meta.referrerPrize = '$' + REF_BONUS; }
+      db.collection('meta').doc(roundId).set(meta)
+      .then(function(){ alert('Winner announced: ' + w); loadBoard(); })
+      .catch(function(e){ alert('Error: ' + e.message); });
+    };
+    if (refBy){
+      db.collection('predictions').doc(roundId + '_' + refBy).get()
+      .then(function(rd){ finish(rd.exists ? rd.data().email : null); })
+      .catch(function(){ finish(null); });
+    } else finish(null);
+  }).catch(function(e){ alert('Error: ' + e.message); });
 };
 </script>
 </body>
