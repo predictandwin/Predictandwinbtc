@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predict & Win — Monthly $5 Crypto Prediction Challenge</title>
+<meta name="description" content="Pay $5 in crypto, predict Gold & BTC prices, win a fixed $5,000 prize.">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b0f1a;color:#e8ecf4;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;background:#101828;border-bottom:1px solid #1e2a44;flex-wrap:wrap}
+.logo{font-weight:800;font-size:17px;letter-spacing:.5px}
+.logo span{color:#f5b301}
+.authbox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.authbox .email{font-size:12px;color:#9fb0cc;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button{cursor:pointer;border:none;border-radius:10px;font-weight:700}
+.btn{background:#f5b301;color:#111;padding:10px 18px;font-size:14px}
+.btn:disabled{background:#3a4358;color:#8a94a8;cursor:not-allowed}
+.btn-ghost{background:#1a2438;color:#e8ecf4;padding:8px 14px;font-size:13px;border:1px solid #2a3a5c}
+.btn-danger{background:#3a1a1a;color:#ff8a8a;padding:8px 14px;font-size:13px;border:1px solid #5c2a2a}
+.btn-ok{background:#123a22;color:#7dffb0;padding:8px 14px;font-size:13px;border:1px solid #2a5c3f}
+.wrap{max-width:640px;margin:0 auto;padding:16px 14px 60px}
+.badge{display:none;background:#3a2a00;color:#ffb301;padding:10px 14px;border-radius:10px;font-size:13px;margin:12px 0;border:1px solid #6b5200}
+.badge.show{display:block}
+.hero{text-align:center;padding:28px 10px 20px}
+.hero h1{font-size:26px;margin-bottom:6px}
+.hero h1 span{color:#f5b301}
+.hero p{color:#9fb0cc;font-size:14px}
+.pool{background:linear-gradient(135deg,#16213c,#0f1a30);border:1px solid #2a3a5c;border-radius:16px;padding:22px;margin:18px 0;text-align:center}
+.pool .label{font-size:12px;color:#9fb0cc;letter-spacing:1.5px}
+.pool .amount{font-size:44px;font-weight:800;color:#f5b301;margin:6px 0}
+.pool .sub{font-size:13px;color:#9fb0cc}
+.countdown{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.cd{background:#0b0f1a;border:1px solid #2a3a5c;border-radius:10px;padding:8px 12px;min-width:64px}
+.cd b{font-size:20px;display:block}
+.cd small{color:#9fb0cc;font-size:11px}
+.card{background:#101828;border:1px solid #1e2a44;border-radius:16px;padding:18px;margin:14px 0}
+.card h2{font-size:17px;margin-bottom:10px}
+.card p{font-size:14px;color:#b8c4dc;line-height:1.6}
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.step{background:#0b0f1a;border:1px solid #2a3a5c;border-radius:12px;padding:12px;font-size:13px;color:#b8c4dc}
+.step b{display:block;color:#f5b301;font-size:15px;margin-bottom:4px}
+.addr{background:#0b0f1a;border:1px solid #2a3a5c;border-radius:10px;padding:10px;margin:8px 0;font-size:12px;word-break:break-all}
+.addr .net{color:#f5b301;font-weight:700;font-size:13px;display:block;margin-bottom:4px}
+.addr .row{display:flex;align-items:center;gap:8px}
+.addr code{flex:1;color:#b8c4dc;font-size:11px}
+.copy{background:#1a2438;color:#e8ecf4;padding:6px 10px;font-size:12px;border-radius:8px}
+input,select{width:100%;background:#0b0f1a;border:1px solid #2a3a5c;color:#e8ecf4;border-radius:10px;padding:12px;font-size:16px;margin:8px 0}
+input[type=file]{padding:8px}
+label{font-size:13px;color:#9fb0cc}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 6px;border-bottom:1px solid #1e2a44;text-align:left}
+th{color:#9fb0cc;font-size:11px;letter-spacing:1px}
+.winner{background:linear-gradient(135deg,#2a2300,#1a1600);border:1px solid #6b5200;border-radius:16px;padding:20px;margin:14px 0;text-align:center}
+.winner h2{color:#f5b301}
+.dep{border:1px solid #2a3a5c;border-radius:12px;padding:12px;margin:10px 0;background:#0b0f1a}
+.dep img{max-width:100%;border-radius:8px;margin:8px 0;border:1px solid #2a3a5c}
+.dep .meta{font-size:12px;color:#9fb0cc;word-break:break-all}
+.dep .actions{display:flex;gap:8px;margin-top:10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal .box{background:#101828;border:1px solid #2a3a5c;border-radius:16px;padding:24px;width:100%;max-width:380px}
+.modal h2{margin-bottom:12px}
+footer{text-align:center;padding:26px 10px 40px;font-size:12px;color:#5a6579}
+footer a{color:#5a6579;margin:0 10px;text-decoration:none}
+.note{font-size:12px;color:#9fb0cc;background:#0b0f1a;border:1px dashed #2a3a5c;border-radius:10px;padding:10px;margin-top:10px;line-height:1.5}
+.qrbox{text-align:center;margin:10px 0}
+.qrbox .qr{display:inline-block;background:#fff;padding:8px;border-radius:10px}
+.qrbox small{display:block;color:#9fb0cc;margin-top:6px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">PREDICT <span>&amp;</span> WIN</div>
+  <div class="authbox">
+    <span class="email hidden" id="userEmail"></span>
+    <button class="btn-ghost hidden" id="adminBtn">⚙ Admin</button>
+    <button class="btn-ghost hidden" id="logoutBtn">Logout</button>
+    <button class="btn" id="loginBtn">Log in</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="badge" id="demoBadge">⚠️ Offline demo mode — internet check karo aur page reload karo. Yahan ki entries save nahi hongi.</div>
+
+  <div class="hero">
+    <h1>Monthly <span>Prediction</span> Challenge</h1>
+    <p>Pay <b style="color:#f5b301">$5</b> in crypto → predict Gold &amp; BTC → win <b style="color:#f5b301">$5,000</b></p>
+  </div>
+
+  <div class="pool">
+    <div class="label">THIS MONTH'S FIXED PRIZE</div>
+    <div class="amount" id="poolAmount">$0</div>
+    <div class="sub"><span id="entryCount">0</span> paid entries · Fixed $5,000 prize</div>
+    <div class="countdown">
+      <div class="cd"><b id="cdD">—</b><small>days</small></div>
+      <div class="cd"><b id="cdH">—</b><small>hours</small></div>
+      <div class="cd"><b id="cdM">—</b><small>min</small></div>
+      <div class="cd"><b id="cdS">—</b><small>sec</small></div>
+    </div>
+  </div>
+
+  <div class="winner hidden" id="winnerBanner">
+    <h2>🏆 <span id="winnerText"></span></h2>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ How It Works</h2>
+    <div class="steps">
+      <div class="step"><b>1️⃣ Predict</b>Lock your Gold &amp; BTC price range for month-end. Free to try.</div>
+      <div class="step"><b>2️⃣ Pay $5</b>Send $5 in crypto (BEP20 / TRC20) to activate your entry.</div>
+      <div class="step"><b>3️⃣ Get approved</b>Admin verifies your deposit — your entry goes live.</div>
+      <div class="step"><b>4️⃣ Win $5,000</b>Month-end price inside your range wins the fixed $5,000 prize.</div>
+    </div>
+  </div>
+
+  <div class="card" id="refCard">
+    <h2>📊 Reference Prices <small style="color:#9fb0cc;font-weight:400">(live)</small></h2>
+    <p style="font-size:15px">GOLD (XAU/USD): <b id="goldPrice" style="color:#f5b301">$ —</b><br>
+    BITCOIN (BTC/USD): <b id="btcPrice" style="color:#f5b301">$ —</b></p>
+    <p style="font-size:11px;color:#5a6579;margin-top:6px">BTC live via CoinGecko · Gold live via gold-api.com</p>
+  </div>
+
+  <div class="card hidden" id="depositCard">
+    <h2>💰 Step 2 — Pay $5 to Activate</h2>
+    <p>Your range is saved! Send exactly <b>$5</b> (or equivalent) to ONE of these addresses to activate your entry:</p>
+    <div class="addr"><span class="net">BEP20 (USDT · BNB Chain)</span><div class="qrbox"><div class="qr" id="qrBEP20"></div><small>Scan to pay</small></div><div class="row"><code id="addrBEP20"></code><button class="copy" onclick="copyAddr('addrBEP20')">Copy</button></div></div>
+    <div class="addr"><span class="net">TRC20 (USDT · Tron)</span><div class="qrbox"><div class="qr" id="qrTRC20"></div><small>Scan to pay</small></div><div class="row"><code id="addrTRC20"></code><button class="copy" onclick="copyAddr('addrTRC20')">Copy</button></div></div>
+    <h2 style="margin-top:16px">🧾 Step 2 — Submit Proof</h2>
+    <label>Network used</label>
+    <select id="depNetwork"><option>BEP20</option><option>TRC20</option></select>
+    <label>Transaction ID (TxID / Hash)</label>
+    <input id="depTxid" placeholder="Paste your transaction hash">
+    <label>Payment screenshot</label>
+    <input type="file" id="depShot" accept="image/*">
+    <button class="btn" id="depSubmit" style="width:100%;margin-top:8px">Submit for Approval</button>
+    <div class="note">Deposits are verified manually. Fake TxIDs or screenshots = permanent ban, no refund.</div>
+  </div>
+
+  <div class="card hidden" id="pendingCard">
+    <h2>⏳ Deposit Under Review</h2>
+    <p>Your $5 deposit proof has been submitted. The admin will verify it shortly — your entry goes <b>live automatically</b> once approved. Check back soon!</p>
+  </div>
+
+  <div class="card hidden" id="predictCard">
+    <h2>🎯 Step 1 — Lock Your Range</h2>
+    <p>Pick a <b>price range</b> for the <b>last day of this month</b>. If the closing price lands inside your range — you win! One entry per account, locked forever once confirmed.</p>
+    <label>Gold (XAU/USD) — your range LOWER bound ($)</label>
+    <input type="number" id="predGold" placeholder="e.g. 5000" min="1" step="any" oninput="showRange()">
+    <p style="font-size:13px;color:#f5b301" id="goldRange"></p>
+    <label>Bitcoin (BTC/USD) — your range LOWER bound ($)</label>
+    <input type="number" id="predBtc" placeholder="e.g. 90000" min="1" step="any" oninput="showRange()">
+    <p style="font-size:13px;color:#f5b301" id="btcRange"></p>
+    <button class="btn" id="lockBtn" style="width:100%">🔒 Lock My Range</button>
+    <div class="note">Gold range = 100 points wide · BTC range = 1000 points wide · Winner = price inside range (closest wins ties)</div>
+  </div>
+
+  <div class="card hidden" id="lockedCard">
+    <h2>✅ Prediction Locked</h2>
+    <p id="lockedText"></p>
+  </div>
+
+  <div class="card" id="loginCard">
+    <h2>🔐 Log in to Enter</h2>
+    <p>Create your free account, pay the $5 entry fee, and lock your prediction. Takes a minute.</p>
+    <button class="btn" id="loginBtn2" style="width:100%;margin-top:8px">Log in / Sign up</button>
+  </div>
+
+  <div class="card">
+    <h2>🏆 Leaderboard — <span id="lbRound"></span></h2>
+    <div id="board"><p style="color:#9fb0cc">Loading…</p></div>
+    <p style="font-size:12px;color:#5a6579;margin-top:8px">Winner = month-end price inside your range (closest range wins) · Paid entries only</p>
+  </div>
+
+  <div class="card">
+    <h2>❓ FAQ</h2>
+    <p><b>Where does the prize come from?</b><br>The $5,000 prize is fixed and sponsor-funded — it does not depend on how many people enter.</p>
+    <p style="margin-top:8px"><b>When do I get paid?</b><br>Winner is announced here within 7 days of month-end and paid in crypto within 7 days after.</p>
+    <p style="margin-top:8px"><b>Can I change my prediction?</b><br>No. Locked entries can't be edited — that's what keeps it fair.</p>
+    <p style="margin-top:8px"><b>Is my deposit refunded if I don't win?</b><br>No — the $5 is your entry fee into the prize pool, win or lose.</p>
+  </div>
+
+  <div class="card hidden" id="adminPanel">
+    <h2>⚙️ Admin Panel</h2>
+    <h3 style="font-size:14px;margin:12px 0 6px;color:#f5b301">Pending Deposits (<span id="pendCount">0</span>)</h3>
+    <div id="depQueue"><p style="color:#9fb0cc">Loading…</p></div>
+    <h3 style="font-size:14px;margin:16px 0 6px;color:#f5b301">Announce Winner</h3>
+    <label>Winner name (as it should appear)</label>
+    <input id="admWinner" placeholder="Winner name">
+    <button class="btn" id="admAnnounce" style="width:100%">📢 Announce Winner</button>
+    <div class="note">Entries this round: <b id="entryCount2">0</b> · Winner prize (fixed): <b id="admPrize">$5,000</b></div>
+  </div>
+
+  <footer>
+    <div>18+ only · Paid entry contest · Play responsibly</div>
+    <div style="margin-top:8px">Contact: ashiralmani607@gmail.com</div>
+  </footer>
+</div>
+
+<div class="modal hidden" id="authModal">
+  <div class="box">
+    <h2 id="authTitle">Log in</h2>
+    <input type="email" id="authEmail" placeholder="Email">
+    <input type="password" id="authPass" placeholder="Password (min 6 chars)">
+    <button class="btn" id="authGo" style="width:100%">Continue</button>
+    <p style="margin-top:10px;font-size:13px;color:#9fb0cc;text-align:center"><a href="#" id="authSwitch" style="color:#f5b301">New here? Create account</a></p>
+    <p style="margin-top:6px;font-size:13px;text-align:center"><a href="#" id="authClose" style="color:#5a6579">Cancel</a></p>
+  </div>
+</div>
+
+<script>
+/* ================= CONFIG — EDIT THESE ================= */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC3lZ3StBYitKWeR2U8aNFRZn0d6XAt8G4",
+  authDomain: "price-predictor-87d7f.firebaseapp.com",
+  projectId: "price-predictor-87d7f",
+  storageBucket: "price-predictor-87d7f.firebasestorage.app",
+  messagingSenderId: "820833751528",
+  appId: "1:820833751528:web:7c6267392b0cffe0ce945d"
+};
+var OWNER_EMAIL = "ashiralmani607@gmail.com";
+var ENTRY_FEE = 5;            // $5 per prediction
+var FIXED_PRIZE = 5000;         // fixed sponsor-funded prize
+var ADDRESSES = {
+  BEP20: "0x5257af1e53c477e6b1006c4e1206e18051a77878",
+  TRC20: "TLQH28A1g78MVcBX14bmxZKdAnytUR5Bvi"
+};
+/* =============== END CONFIG =============== */
+
+var USE_FIREBASE = false, db = null, currentUser = null;
+var roundId = null, roundEnd = null;
+var isOwner = false, myDeposit = null, myPrediction = null;
+
+function $(id){ return document.getElementById(id); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function copyAddr(id){ var t = $(id).textContent; if (navigator.clipboard) navigator.clipboard.writeText(t); alert('Address copied'); }
+
+/* ---- round = calendar month ---- */
+(function initRound(){
+  var n = new Date();
+  roundId = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0');
+  roundEnd = new Date(n.getFullYear(), n.getMonth()+1, 0, 23, 59, 59);
+  var names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  $('lbRound').textContent = names[n.getMonth()] + ' ' + n.getFullYear();
+})();
+
+/* ---- countdown ---- */
+setInterval(function(){
+  var diff = roundEnd - new Date();
+  if (diff < 0) diff = 0;
+  var d = Math.floor(diff/864e5), h = Math.floor(diff/36e5)%24, m = Math.floor(diff/6e4)%60, s = Math.floor(diff/1e3)%60;
+  $('cdD').textContent = d; $('cdH').textContent = h; $('cdM').textContent = m; $('cdS').textContent = s;
+}, 1000);
+
+/* ---- live prices ---- */
+function loadPrices(){
+  fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+    .then(function(r){ return r.json(); })
+    .then(function(j){ if (j.bitcoin && j.bitcoin.usd) $('btcPrice').textContent = '$ ' + Math.round(j.bitcoin.usd).toLocaleString(); })
+    .catch(function(){});
+  fetch('https://api.gold-api.com/price/XAU')
+    .then(function(r){ return r.json(); })
+    .then(function(j){ var p = j.price || j.data; if (p) $('goldPrice').textContent = '$ ' + Math.round(p).toLocaleString(); })
+    .catch(function(){});
+}
+loadPrices(); setInterval(loadPrices, 60000);
+
+/* ---- firebase init ---- */
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+  USE_FIREBASE = true;
+  firebase.auth().onAuthStateChanged(onAuth);
+} catch(e){ $('demoBadge').classList.add('show'); }
+
+/* ---- auth ---- */
+var authMode = 'login';
+function openAuth(){ $('authModal').classList.remove('hidden'); }
+function onAuth(u){
+  currentUser = u;
+  isOwner = !!(u && u.email === OWNER_EMAIL);
+  $('loginBtn').classList.toggle('hidden', !!u);
+  $('loginCard').classList.toggle('hidden', !!u);
+  $('logoutBtn').classList.toggle('hidden', !u);
+  $('adminBtn').classList.toggle('hidden', !isOwner);
+  if (u){ $('userEmail').textContent = u.email; $('userEmail').classList.remove('hidden'); }
+  else { $('userEmail').classList.add('hidden'); }
+  if (u) loadMyState(); else { resetCards(); }
+  loadBoard(); loadPool();
+  if (isOwner) loadAdmin();
+}
+$('loginBtn').onclick = openAuth;
+$('loginBtn2').onclick = openAuth;
+$('logoutBtn').onclick = function(){ firebase.auth().signOut(); };
+$('authClose').onclick = function(e){ e.preventDefault(); $('authModal').classList.add('hidden'); };
+$('authSwitch').onclick = function(e){
+  e.preventDefault();
+  authMode = (authMode === 'login') ? 'signup' : 'login';
+  $('authTitle').textContent = authMode === 'login' ? 'Log in' : 'Create account';
+  $('authSwitch').textContent = authMode === 'login' ? 'New here? Create account' : 'Have an account? Log in';
+};
+$('authGo').onclick = function(){
+  var em = $('authEmail').value.trim(), pw = $('authPass').value;
+  if (!em || pw.length < 6){ alert('Enter email + password (min 6 chars)'); return; }
+  var p = authMode === 'login'
+    ? firebase.auth().signInWithEmailAndPassword(em, pw)
+    : firebase.auth().createUserWithEmailAndPassword(em, pw);
+  p.then(function(){ $('authModal').classList.add('hidden'); })
+   .catch(function(e){ alert('Auth error: ' + e.message); });
+};
+$('adminBtn').onclick = function(){
+  $('adminPanel').scrollIntoView({behavior:'smooth'});
+  $('adminPanel').classList.remove('hidden');
+  loadAdmin();
+};
+
+function resetCards(){
+  ['depositCard','pendingCard','predictCard','lockedCard'].forEach(function(id){ $(id).classList.add('hidden'); });
+  if (typeof pendingTimer !== 'undefined' && pendingTimer){ clearInterval(pendingTimer); pendingTimer = null; }
+  if (typeof adminTimer !== 'undefined' && adminTimer){ clearInterval(adminTimer); adminTimer = null; }
+  myDeposit = null; myPrediction = null;
+}
+
+/* ---- my deposit + prediction state ---- */
+function depId(){ return roundId + '_' + currentUser.uid; }
+function loadMyState(){
+  resetCards();
+  db.collection('deposits').doc(depId()).get().then(function(d){
+    myDeposit = d.exists ? d.data() : null;
+    return db.collection('predictions').doc(depId()).get();
+  }).then(function(p){
+    myPrediction = p.exists ? p.data() : null;
+    renderMyCards();
+  }).catch(function(){ renderMyCards(); });
+}
+function renderMyCards(){
+  resetCards();
+  if (pendingTimer){ clearInterval(pendingTimer); pendingTimer = null; }
+  if (myPrediction && myPrediction.status === 'active'){
+    $('lockedCard').classList.remove('hidden');
+    $('lockedText').innerHTML = 'Gold range: <b>$' + Number(myPrediction.goldLo).toLocaleString() + ' – $' + Number(myPrediction.goldHi).toLocaleString() + '</b><br>BTC range: <b>$' + Number(myPrediction.btcLo).toLocaleString() + ' – $' + Number(myPrediction.btcHi).toLocaleString() + '</b><br><span style="color:#7dffb0">● Entry LIVE</span>';
+  } else if (myPrediction && myPrediction.status === 'unpaid'){
+    if (myDeposit && myDeposit.status === 'pending'){
+      $('pendingCard').classList.remove('hidden');
+      pendingTimer = setInterval(loadMyState, 30000);
+    } else {
+      $('depositCard').classList.remove('hidden');
+      setAddr('BEP20'); setAddr('TRC20');
+    }
+  } else {
+    $('predictCard').classList.remove('hidden');
+  }
+}
+var pendingTimer = null;
+function setAddr(net){
+  var a = ADDRESSES[net];
+  $('addr' + net).textContent = a;
+  var q = $('qr' + net);
+  q.innerHTML = '';
+  if (a.indexOf('PASTE_') === 0){
+    q.innerHTML = '<small style="color:#111">address jald aa raha hai</small>';
+  } else if (typeof QRCode !== 'undefined'){
+    new QRCode(q, {text: a, width: 128, height: 128});
+  }
+}
+/* ---- screenshot: compress in browser, store in Firestore (no Storage needed) ---- */
+function fileToDataURL(file){
+  return new Promise(function(res, rej){
+    var img = new Image();
+    img.onload = function(){
+      var max = 800, w = img.width, h = img.height;
+      if (w > max){ h = Math.round(h * max / w); w = max; }
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(img.src);
+      res(c.toDataURL('image/jpeg', 0.7));
+    };
+    img.onerror = function(){ rej(new Error('Could not read image')); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+/* ---- deposit submit ---- */
+$('depSubmit').onclick = function(){
+  if (!USE_FIREBASE || !currentUser){ alert('Log in first'); return; }
+  var net = $('depNetwork').value;
+  var txid = $('depTxid').value.trim();
+  var file = $('depShot').files[0];
+  if (txid.length < 10){ alert('Paste a valid TxID'); return; }
+  if (!file){ alert('Upload your payment screenshot'); return; }
+  $('depSubmit').disabled = true;
+  $('depSubmit').textContent = 'Processing…';
+  fileToDataURL(file).then(function(url){
+    return db.collection('deposits').doc(depId()).set({
+      uid: currentUser.uid, email: currentUser.email, round: roundId,
+      network: net, txid: txid, shot: url, amount: ENTRY_FEE,
+      status: 'pending', submittedAt: Date.now()
+    });
+  })
+  .then(function(){ alert('Submitted! Admin will verify shortly.'); loadMyState(); })
+  .catch(function(e){ alert('Error: ' + e.message); })
+  .finally(function(){ $('depSubmit').disabled = false; $('depSubmit').textContent = 'Submit for Approval'; });
+};
+
+/* ---- range prediction ---- */
+var GOLD_RANGE = 100, BTC_RANGE = 1000;
+function showRange(){
+  var g = parseFloat($('predGold').value), b = parseFloat($('predBtc').value);
+  $('goldRange').textContent = g > 0 ? 'Your gold range: $' + g.toLocaleString() + ' – $' + (g + GOLD_RANGE).toLocaleString() : '';
+  $('btcRange').textContent = b > 0 ? 'Your BTC range: $' + b.toLocaleString() + ' – $' + (b + BTC_RANGE).toLocaleString() : '';
+}
+
+/* ---- lock prediction (approved deposits only) ---- */
+$('lockBtn').onclick = function(){
+  var g = parseFloat($('predGold').value), b = parseFloat($('predBtc').value);
+  if (!(g > 0) || !(b > 0)){ alert('Enter both lower bounds'); return; }
+  var glo = g, ghi = g + GOLD_RANGE, blo = b, bhi = b + BTC_RANGE;
+  if (!confirm('Lock GOLD $' + glo.toLocaleString() + '–$' + ghi.toLocaleString() + ' and BTC $' + blo.toLocaleString() + '–$' + bhi.toLocaleString() + '? Cannot be changed!')) return;
+  $('lockBtn').disabled = true;
+  db.collection('predictions').doc(depId()).set({
+    uid: currentUser.uid, email: currentUser.email, round: roundId,
+    goldLo: glo, goldHi: ghi, btcLo: blo, btcHi: bhi,
+    status: 'unpaid', createdAt: Date.now()
+  }).then(function(){ alert('Range locked! Now pay $5 to activate your entry.'); loadMyState(); })
+  .catch(function(e){
+    alert('Could not lock: ' + e.message + ' (deposit must be approved first)');
+    $('lockBtn').disabled = false;
+  });
+};
+
+/* ---- pool + leaderboard ---- */
+function loadPool(){
+  if (!USE_FIREBASE) return;
+  db.collection('predictions').where('round','==',roundId).get()
+  .then(function(s){
+    var n = 0;
+    s.forEach(function(d){ if (d.data().status === 'active') n++; });
+    $('poolAmount').textContent = '$' + FIXED_PRIZE.toLocaleString();
+    $('entryCount').textContent = n;
+    var ec2 = $('entryCount2'); if (ec2) ec2.textContent = n;
+    $('admPrize').textContent = '$' + FIXED_PRIZE.toLocaleString();
+  }).catch(function(){});
+}
+function loadBoard(){
+  if (!USE_FIREBASE) return;
+  db.collection('predictions').where('round','==',roundId).get().then(function(s){
+    var rows = [];
+    s.forEach(function(d){ if (d.data().status === 'active') rows.push(d.data()); });
+    rows.sort(function(a,b){ return a.createdAt - b.createdAt; });
+    if (!rows.length){ $('board').innerHTML = '<p style="color:#9fb0cc">No paid entries yet this month. Be the first!</p>'; return; }
+    var h = '<table><tr><th>#</th><th>PLAYER</th><th>GOLD RANGE</th><th>BTC RANGE</th></tr>';
+    rows.forEach(function(r,i){
+      var name = escapeHtml((r.email||'player').split('@')[0]);
+      h += '<tr><td>' + (i+1) + '</td><td>' + name + '</td><td>$' + Number(r.goldLo).toLocaleString() + '–$' + Number(r.goldHi).toLocaleString() + '</td><td>$' + Number(r.btcLo).toLocaleString() + '–$' + Number(r.btcHi).toLocaleString() + '</td></tr>';
+    });
+    $('board').innerHTML = h + '</table>';
+  }).catch(function(){ $('board').innerHTML = '<p style="color:#9fb0cc">Could not load.</p>'; });
+  db.collection('meta').doc(roundId).get().then(function(d){
+    if (d.exists && d.data().winner){
+      $('winnerBanner').classList.remove('hidden');
+      $('winnerText').textContent = d.data().winner + ' won ' + d.data().prize + '!';
+    }
+  }).catch(function(){});
+}
+
+/* ---- admin ---- */
+var adminTimer = null;
+function loadAdmin(){
+  if (!isOwner || !USE_FIREBASE) return;
+  if (adminTimer){ clearInterval(adminTimer); adminTimer = null; }
+  $('adminPanel').classList.remove('hidden');
+  db.collection('deposits').where('round','==',roundId).get()
+  .then(function(s){
+    var pend = [];
+    s.forEach(function(d){ if (d.data().status === 'pending') pend.push(d); });
+    $('pendCount').textContent = pend.length;
+    if (!pend.length){ $('depQueue').innerHTML = '<p style="color:#9fb0cc">No pending deposits. 🎉</p>'; return; }
+    var h = '';
+    pend.forEach(function(d){
+      var v = d.data();
+      h += '<div class="dep" id="dep_' + d.id + '">'
+        + '<div class="meta"><b>' + escapeHtml(v.email||'') + '</b> · ' + escapeHtml(v.network) + ' · $' + v.amount + '<br>TxID: ' + escapeHtml(v.txid) + '</div>'
+        + (v.shot ? '<img src="' + escapeHtml(v.shot) + '" alt="screenshot">' : '')
+        + '<div class="actions"><button class="btn-ok" onclick="decideDep(\'' + d.id + '\',\'approved\')">✅ Approve & Activate</button>'
+        + '<button class="btn-danger" onclick="decideDep(\'' + d.id + '\',\'rejected\')">❌ Reject</button></div></div>';
+    });
+    $('depQueue').innerHTML = h;
+  }).catch(function(e){ $('depQueue').innerHTML = '<p>Error: ' + escapeHtml(e.message) + '</p>'; });
+  adminTimer = setInterval(function(){ if (isOwner) loadAdmin(); }, 30000);
+}
+function decideDep(id, st){
+  if (st === 'rejected'){
+    if (!confirm('Reject this deposit?')) return;
+    db.collection('deposits').doc(id).update({status: st, decidedAt: Date.now()})
+    .then(function(){ alert('Deposit rejected'); loadAdmin(); })
+    .catch(function(e){ alert('Error: ' + e.message); });
+    return;
+  }
+  if (!confirm('Approve this deposit AND activate the entry?')) return;
+  db.collection('predictions').doc(id).get().then(function(p){
+    var batch = db.batch();
+    batch.update(db.collection('deposits').doc(id), {status: 'approved', decidedAt: Date.now()});
+    if (p.exists) batch.update(db.collection('predictions').doc(id), {status: 'active', decidedAt: Date.now()});
+    return batch.commit();
+  }).then(function(){ alert('Approved & entry is LIVE'); loadAdmin(); loadPool(); loadBoard(); })
+  .catch(function(e){ alert('Error: ' + e.message); });
+}
+$('admAnnounce').onclick = function(){
+  var w = $('admWinner').value.trim();
+  if (!w){ alert('Enter the winner name'); return; }
+  var prize = $('admPrize').textContent;
+  if (!confirm('Announce "' + w + '" as winner (' + prize + ')?')) return;
+  db.collection('meta').doc(roundId).set({winner: w, prize: prize, announcedAt: Date.now()})
+  .then(function(){ alert('Winner announced: ' + w); loadBoard(); })
+  .catch(function(e){ alert('Error: ' + e.message); });
+};
+</script>
+</body>
+</html>
