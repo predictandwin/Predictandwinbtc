@@ -204,7 +204,6 @@ footer a{color:#5a6579;margin:0 10px;text-decoration:none}
 
   <footer>
     <div>18+ only · Paid entry contest · Play responsibly</div>
-    <div style="margin-top:8px">Contact: ashiralmani607@gmail.com</div>
   </footer>
 </div>
 
@@ -299,7 +298,7 @@ function onAuth(u){
   $('adminBtn').classList.toggle('hidden', !isOwner);
   if (u){ $('userEmail').textContent = u.email; $('userEmail').classList.remove('hidden'); }
   else { $('userEmail').classList.add('hidden'); }
-  if (u){ loadMyState(); $('referCard').classList.remove('hidden'); $('refLink').textContent = location.origin + location.pathname + '?ref=' + u.uid; loadRefCount(); } else { resetCards(); $('referCard').classList.add('hidden'); }
+  if (u){ loadMyState(); $('referCard').classList.remove('hidden'); $('refLink').textContent = location.origin + location.pathname + '?ref=' + u.uid; loadRefCount(); } else { myDeposit = null; myPrediction = null; resetCards(); $('referCard').classList.add('hidden'); }
   loadBoard(); loadPool();
   if (isOwner) loadAdmin();
 }
@@ -332,7 +331,6 @@ function resetCards(){
   ['depositCard','pendingCard','predictCard','lockedCard'].forEach(function(id){ $(id).classList.add('hidden'); });
   if (typeof pendingTimer !== 'undefined' && pendingTimer){ clearInterval(pendingTimer); pendingTimer = null; }
   if (typeof adminTimer !== 'undefined' && adminTimer){ clearInterval(adminTimer); adminTimer = null; }
-  myDeposit = null; myPrediction = null;
 }
 
 /* ---- referral count ---- */
